@@ -1,0 +1,55 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Security.Cryptography;
+
+namespace ReadEncrypted
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            string message = "Kako pa se imamo danes ?";
+
+            string signatureInBase64 = "ZldMNW9QNGNKY2ZpYlpKVlRacDJxaURhbFlGY3NMNGF5ZFpLUnBnckdNUVZDNXQ4L1h3LzF4S1V1WHhGVGJyUmVFQ3JtZlQ0VzY1R1o3N1pQMXV4TmoycWswNGZJZTFkTHU4cFY3QUwrK0lCQTZ2dGEySDBrMWVrNnlJSUl0ZUd1N0FqQ1RKTmIrV2hrcXlza3Q5N3ZtREVLLysyMk5td093OVdiTmo0SkJCUGZZRkdhNkp4enlMUXlpck5iMVcvQ1VSaTdmY0xaVWJNajVWZnNJazJSd3pEdDZxMVZRek90cWhEZ3RoekJZb3MyWFRwZ3FsWjJ2TlR1enRVMm9vdjdJM1VtQ1pYMHpCdi81RERuUTBwZDAzTzJuMXBGU3NYMFdMdlUxMTRpZXd6ZG5XVWJITzRqSmY0NFdFdlhsWWE5eGJndGNybUs5R3E1V3ExSTREbWNRPT0=";
+
+            string publicKeyInBase64 = "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTE2Ij8+DQo8UlNBUGFyYW1ldGVycyB4bWxuczp4c2k9Imh0dHA6Ly93d3cudzMub3JnLzIwMDEvWE1MU2NoZW1hLWluc3RhbmNlIiB4bWxuczp4c2Q9Imh0dHA6Ly93d3cudzMub3JnLzIwMDEvWE1MU2NoZW1hIj4NCiAgPEV4cG9uZW50PkFRQUI8L0V4cG9uZW50Pg0KICA8TW9kdWx1cz5zTklLZTR1c2UwSGdldTVNc3hpeGtpM1I4VUNpS1JEWkhNckt2anVtcW5HVkc4dlVFZWRtNFNtVUF1RFFWM29wVkNyVHdVMEFPaGxwbGpiKzRwT2pJbEZwSy9Bd3RYelErRVNGV1FsRXlyc2RGcTcvQ203cEh4dWVOYS9NaC9GZGJKR0xDUDhqR0R0MTBIZnY3VlBodlJGaVN5KzA1ZGowbmgxMFNBdzI4TWd5ajM3bDVGaFhPZjh1ZWxsbWk1YTJndU5BZnNYeVRMOVlYZFVhU1NsdC9yRTlkTklHM1JxSGhXMjdOaE1LUnpsakd4cXZjZVJIZ2F3bTF5ZXVkc3IwOHBNOVdwRVhxbjhWTVJFaVFWU2o2amNNV09yZHRDdDBLT1k4NzV1MHBIbjRISWg5TkMyZjU3blNTZ1pxMStHREV0TnE3Nk1CZTVMWkRLU2cyS05DSHc9PTwvTW9kdWx1cz4NCjwvUlNBUGFyYW1ldGVycz4=";
+
+            Console.WriteLine(checkSignature(message, signatureInBase64, publicKeyInBase64));
+            Console.ReadLine();
+        }
+
+        //require plain text message, base64 signature and base64 publicKey
+        private static bool checkSignature(string message, string signatureInBase64, string publicKeyInBase64)
+        {
+            var stringReader = new System.IO.StringReader(Base64Decode(publicKeyInBase64));
+            var xmlSerializer = new System.Xml.Serialization.XmlSerializer(typeof(RSAParameters));
+            var pubicKey = (RSAParameters)xmlSerializer.Deserialize(stringReader);
+
+            var serviceProvider = new RSACryptoServiceProvider();
+            serviceProvider.ImportParameters(pubicKey);
+
+            //get signature
+            RSAPKCS1SignatureDeformatter RSADeformatter = new RSAPKCS1SignatureDeformatter(serviceProvider);
+            RSADeformatter.SetHashAlgorithm("SHA256");
+            SHA256Managed SHhash = new SHA256Managed();
+
+            //checking
+            if (RSADeformatter.VerifySignature(SHhash.ComputeHash(new UnicodeEncoding().GetBytes(message)), System.Convert.FromBase64String(Base64Decode(signatureInBase64))))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public static string Base64Decode(string base64EncodedData)
+        {
+            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
+            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
+        }
+    }
+}
