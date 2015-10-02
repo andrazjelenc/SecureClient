@@ -121,8 +121,8 @@ namespace SendEncrypted
             string message = Console.ReadLine();
 
 
-            string body = "--------MESSAGE-------" + Environment.NewLine + message + "---------END_MESSAGE---------" + Environment.NewLine + "---------------SIGNATURE---------" + Environment.NewLine + signMessage(privateKey, message) + Environment.NewLine
-                + "--------------END_SIGNATURE-------------" + Environment.NewLine + "----------PUBLIC_KEY---------------" + Environment.NewLine + publicKey + Environment.NewLine + "------------END_PUBLIC_KEY----------------";
+            string body = "--------MESSAGE-------" + Environment.NewLine + message + Environment.NewLine + "---------END_MESSAGE---------" + Environment.NewLine + "---------------SIGNATURE---------" + Environment.NewLine + Base64Encode(signMessage(privateKey, message)) + Environment.NewLine
+                + "--------------END_SIGNATURE-------------" + Environment.NewLine + "----------PUBLIC_KEY---------------" + Environment.NewLine + Base64Encode(publicKey) + Environment.NewLine + "------------END_PUBLIC_KEY----------------";
 
             string output = sendit(username, password, toMail, body, host, port, ssl);
             Console.ReadLine();
@@ -315,6 +315,18 @@ namespace SendEncrypted
             //write string to output file
             string signature = System.Convert.ToBase64String(signedValue);
             return signature;
+        }
+
+        public static string Base64Encode(string plainText)
+        {
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return System.Convert.ToBase64String(plainTextBytes);
+        }
+
+        public static string Base64Decode(string base64EncodedData)
+        {
+            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
+            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
         public static string sendit(string username, string password, string toMail, string message, string host, int port, bool ssl)
