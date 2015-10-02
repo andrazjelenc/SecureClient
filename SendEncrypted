@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Net.Mail;
-using System.Net;
 using System.IO;
+using System.Net;
+using System.Net.Mail;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace SendEncrypted
 {
@@ -13,13 +11,14 @@ namespace SendEncrypted
     {
         static void Main(string[] args)
         {
-            //configuration
+            //user confiruration
             string username = "";
             string password = "";
             string host = "";
             int port = 0;
             bool ssl = false;
-
+            
+            //user private and public key string
             string privateKey = "";
             string publicKey = "";
 
@@ -30,7 +29,7 @@ namespace SendEncrypted
   
             if(File.Exists(profilePath) && File.Exists(privateKeyPath) && File.Exists(publicKeyPath))
             {
-                //preberemo profile file
+                //read profile file
                 using (StringReader sr = new StringReader(File.ReadAllText(profilePath))) 
                 {
                     string line;
@@ -58,18 +57,22 @@ namespace SendEncrypted
                         }
                     }
                 }
+
+                //password is used to encrpyt private key with AES
                 Console.Write("Please enter password for " + username + ": ");
                 password = ReadPassword();
 
                 //preberemo private key file
                 string rawPrivateKey = File.ReadAllText(privateKeyPath);
 
+                //decrypt private key using user password
                 privateKey = DecryptStringAes(rawPrivateKey, ConvertKey(password));
 
+                //read public key
                 publicKey = File.ReadAllText(publicKeyPath);
 
             }
-            else
+            else //create new identity
             {
                 Console.Write("Your username: ");
                 username = Console.ReadLine();
@@ -82,13 +85,14 @@ namespace SendEncrypted
                 Console.Write("Use ssl (true/false): ");
                 ssl = Boolean.Parse(Console.ReadLine());
 
+                //save data to profile.txt
                 string[] lines = { "username:" + username, "host:" + host, "port:" + port, "ssl:" + ssl};
-                // WriteAllLines creates a file, writes a collection of strings to the file,
-                // and then closes the file.  You do NOT need to call Flush() or Close().
                 File.WriteAllLines(profilePath, lines);
 
+                //create new RSA key and save it to file
                 GenerateRSAKey(password, privateKeyPath, publicKeyPath);
 
+                //read from created file to variables
                 string rawPrivateKey = File.ReadAllText(privateKeyPath);
 
                 privateKey = DecryptStringAes(rawPrivateKey, ConvertKey(password));
@@ -98,36 +102,59 @@ namespace SendEncrypted
 
             }
 
+            //for debuging only
             Console.WriteLine(username);
             Console.WriteLine(password);
             Console.WriteLine(port);
             Console.WriteLine(host);
             Console.WriteLine(ssl);
+
             Console.WriteLine(privateKey);
             Console.WriteLine(publicKey);
 
-            //uporabniške nastavitve nastavljene :)
-
             Console.WriteLine();
             Console.WriteLine();
 
-            //posiljamo mail !!
+            /*
+             *  USER CREDENTIALS: LOADED!
+             * 
+             *  SENDING EMAIL...
+             * 
+             */
+
+            
+
+            //set the receiver
             Console.WriteLine("Enter receiver: ");
             string toMail = Console.ReadLine();
 
-            //to-do poiscemo njegov javni kljuc v addressarju.
+            /* TO-DO:
+             * GET RECEIVER PUBLIC KEY FROM ADDRESSER
+             * DECODE BASE64 TO GET "STRING" FOR THE FUNCTION encryptRsa
+             * 
+             */
+
+            /*
+             * FOR NOW IT JUST SIGN THE MESSAGE AND ENCRPYT IT
+             * IT APPEND SIGN AND PUBLIC KEY AT THE END
+             * 
+             * 
+             */
 
             Console.WriteLine("Enter message: ");
             string message = Console.ReadLine();
 
 
-            string body = "--------MESSAGE-------" + Environment.NewLine + message + Environment.NewLine + "---------END_MESSAGE---------" + Environment.NewLine + "---------------SIGNATURE---------" + Environment.NewLine + Base64Encode(signMessage(privateKey, message)) + Environment.NewLine
-                + "--------------END_SIGNATURE-------------" + Environment.NewLine + "----------PUBLIC_KEY---------------" + Environment.NewLine + Base64Encode(publicKey) + Environment.NewLine + "------------END_PUBLIC_KEY----------------";
+            string body = "---MESSAGE---" + Environment.NewLine + message + Environment.NewLine + "---END_MESSAGE---" + Environment.NewLine + "---SIGNATURE---" + Environment.NewLine + Base64Encode(signMessage(privateKey, message)) + Environment.NewLine
+                + "---END_SIGNATURE---" + Environment.NewLine + "---PUBLIC_KEY---" + Environment.NewLine + Base64Encode(publicKey) + Environment.NewLine + "---END_PUBLIC_KEY---";
 
             string output = sendit(username, password, toMail, body, host, port, ssl);
+            Console.WriteLine();
+            Console.WriteLine(output);
             Console.ReadLine();
         }
 
+        //read password from cmd (get * instead of real chars)
         public static string ReadPassword()
         {
             string password = "";
@@ -162,6 +189,7 @@ namespace SendEncrypted
             return password;
         }
 
+        //convert password to bytes for AES encryption
         private static byte[] ConvertKey(string password, int keyBytes = 32)
         {
             const int Iterations = 300;
@@ -170,6 +198,7 @@ namespace SendEncrypted
             return keyGenerator.GetBytes(keyBytes);
         }
 
+        //encrpyt privateKey using password bytes from ConvertKey
         static string EncryptStringAes(string plainText, byte[] Key)
         {
             // Check arguments. 
@@ -214,6 +243,7 @@ namespace SendEncrypted
 
         }
 
+        //decrypt privateKey using password bytes
         static string DecryptStringAes(string cipherTextString, byte[] Key)
         {
             string IV_String = cipherTextString.Substring(0, 24);
@@ -267,6 +297,7 @@ namespace SendEncrypted
 
         }
 
+        //generate new RSA key pair and save them to files
         static void GenerateRSAKey(string password, string privateKeyPath, string publicKeyPath)
         {
             //generate new RSA key pair
@@ -294,6 +325,7 @@ namespace SendEncrypted
 
         }
 
+        //generate hash and encrypt it using privateKey
         static string signMessage(string privateKeyString, string message)
         {
             //get private key and message from files
@@ -317,18 +349,21 @@ namespace SendEncrypted
             return signature;
         }
 
+        //signatures, keys can containst \n what makes akward new lines in message, so we convert them to base64
         public static string Base64Encode(string plainText)
         {
             var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
             return System.Convert.ToBase64String(plainTextBytes);
         }
 
+        //NOT USED: from received message we convert back public key and signature
         public static string Base64Decode(string base64EncodedData)
         {
             var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
             return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
         }
 
+        //Send message using SMTP
         public static string sendit(string username, string password, string toMail, string message, string host, int port, bool ssl)
         {
             MailMessage msg = new MailMessage();
@@ -362,7 +397,8 @@ namespace SendEncrypted
             }
         }
 
-        public static string encrypt(string publicKeyLoc, string message)
+        //encrpyt string RSA key (for now only for signature), to-do encrypt message using receiver's public key
+        public static string encryptRsa(string publicKeyLoc, string message)
         {
             //read public key from file
             string pubicKeyString = File.ReadAllText(publicKeyLoc);
