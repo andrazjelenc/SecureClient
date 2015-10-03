@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Mail;
@@ -17,16 +18,50 @@ namespace SendEncrypted
             string host = "";
             int port = 0;
             bool ssl = false;
-            
+
             //user private and public key string
             string privateKey = "";
             string publicKey = "";
 
+            /* addresser
+             *  test@server.com::publicKeyInBase64
+             *  user@test.net::publicKeyForUserInBase64
+             */
+            Dictionary<string, string> addresser = new Dictionary<string, string>();
+
+            //create new directory in <user>\AppData\Local\SendEncrypted
+            string localPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\SendEncrypted";
+            Directory.CreateDirectory(localPath);
+
             //search for profile file
-            string profilePath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\SendEncrypted\profile.txt";
-            string privateKeyPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\SendEncrypted\private.txt";
-            string publicKeyPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\SendEncrypted\public.txt";
-  
+            string addresserPath = localPath + @"\addresser.txt";
+            string profilePath = localPath + @"\profile.txt";
+            string privateKeyPath = localPath + @"\private.txt";
+            string publicKeyPath = localPath + @"\public.txt";
+
+
+            //read addresser
+            if (File.Exists(addresserPath))
+            {
+                string content = File.ReadAllText(addresserPath);
+
+                using (StringReader sr = new StringReader(content))
+                {
+                    string line;
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        string[] data = line.Split(new string[] { "::" }, StringSplitOptions.None);
+                        addresser.Add(data[0], data[1]);
+                    }
+
+                }
+            }
+            else
+            {
+                File.Create(addresserPath).Dispose(); //create new empty addresser
+            }
+            
+            //Read user configuration
             if(File.Exists(profilePath) && File.Exists(privateKeyPath) && File.Exists(publicKeyPath))
             {
                 //read profile file
@@ -122,17 +157,9 @@ namespace SendEncrypted
              * 
              */
 
-            
-
             //set the receiver
             Console.WriteLine("Enter receiver: ");
             string toMail = Console.ReadLine();
-
-            /* TO-DO:
-             * GET RECEIVER PUBLIC KEY FROM ADDRESSER
-             * DECODE BASE64 TO GET "STRING" FOR THE FUNCTION encryptRsa
-             * 
-             */
 
             /*
              * FOR NOW IT JUST SIGN THE MESSAGE AND ENCRPYT IT
@@ -144,8 +171,22 @@ namespace SendEncrypted
             Console.WriteLine("Enter message: ");
             string message = Console.ReadLine();
 
+            string encryptedSignature = Base64Encode(signMessage(privateKey, message));
 
-            string body = "---MESSAGE---" + Environment.NewLine + message + Environment.NewLine + "---END_MESSAGE---" + Environment.NewLine + "---SIGNATURE---" + Environment.NewLine + Base64Encode(signMessage(privateKey, message)) + Environment.NewLine
+            //if we know remote public key we encrypt the message
+            if (addresser.ContainsKey(toMail))
+            {
+                string remotePublicKeyInBase64 = addresser[toMail];
+                string remotePublicKey = Base64Decode(remotePublicKeyInBase64);
+
+                message = encryptRsa(remotePublicKey, message);
+                message = "---ENCRYPTED---" + Environment.NewLine + Base64Encode(message) + Environment.NewLine + "---END_ENCRYPTED---";
+
+                Console.WriteLine("Remote public key found! Message will be encrpyted and signed");
+            }
+
+
+            string body = "---MESSAGE---" + Environment.NewLine + message + Environment.NewLine + "---END_MESSAGE---" + Environment.NewLine + "---SIGNATURE---" + Environment.NewLine + encryptedSignature + Environment.NewLine
                 + "---END_SIGNATURE---" + Environment.NewLine + "---PUBLIC_KEY---" + Environment.NewLine + Base64Encode(publicKey) + Environment.NewLine + "---END_PUBLIC_KEY---";
 
             string output = sendit(username, password, toMail, body, host, port, ssl);
@@ -398,11 +439,8 @@ namespace SendEncrypted
         }
 
         //encrpyt string RSA key (for now only for signature), to-do encrypt message using receiver's public key
-        public static string encryptRsa(string publicKeyLoc, string message)
+        public static string encryptRsa(string pubicKeyString, string message)
         {
-            //read public key from file
-            string pubicKeyString = File.ReadAllText(publicKeyLoc);
-
             //read plaintext message from file
             string text = message;
 
