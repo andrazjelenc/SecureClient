@@ -1,0 +1,11 @@
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\bin\Debug\SecureClient.exe
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\bin\Debug\SecureClient.pdb
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.Properties.Resources.resources
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.csproj.GenerateResource.Cache
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.exe
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.pdb
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.Login.resources
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.Client.resources
+c:\users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.Register.resources
+C:\Users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\obj\x86\Debug\SecureClient.csprojResolveAssemblyReference.cache
+C:\Users\andraz\documents\visual studio 2010\Projects\SecureClient\SecureClient\bin\Debug\S22.Imap.dll
